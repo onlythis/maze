@@ -2,39 +2,65 @@ import random
 w=64
 h=64
 grid =[[0 for a in range(w)] for b in range(h)]
-grid_dir =[[[] for a in range(w)] for b in range(h)]
+grid_dir =[[[0,0,0,0] for a in range(w)] for b in range(h)]
 path=[]
 treesize=16
-start_positions=[]
-branch_paths=[]
-startx=16
-starty=32
+start_positions=[[16,16],[32,16],[48,16],[16,32],[48,32],[16,48],[32,48],[48,48]]
+roots=[]
+#[label, [start_positions], [paths]]
+roots_len=8
 #array of start positions(one for each branch), array of branchpaths(one for each branch)
 def quadTree():
-	grid[startx][starty]+=1
-	start_positions.append([startx,starty])
-	branch_paths.append(growbranch(startx,starty,treesize,1))
-	prevpaths=0
-	currpaths=len(branch_paths)
-	counter=0
-	while(currpaths!=prevpaths):
-		if(counter==25):
-			print("countReached")
-			print(counter)
-			return start_positions
-		for y in range(prevpaths,currpaths):
-			search_opendirrs(start_positions[y][0],start_positions[y][1],branch_paths[y])
-		prevpaths=currpaths
-		currpaths=len(branch_paths)
-		counter+=1
+	depth=0
 
-	return start_positions
+	for x in range(roots_len):
+		startx=start_positions[x][0]
+		starty=start_positions[x][1]
+		grid[starty][startx]+=1
+		roots.append([x])
+		roots[x].append([[startx,starty]])
+		dirr=random.randint(0,3)
+		roots[x].append([growbranch(startx,starty,treesize,dirr)])
+	ARCSG=True #Any Root Can Still Grow
+	rootsPrevDepth=[0 for abc in range(len(roots))]
+	rootsCurrDepth=[0 for abc in range(len(roots))]
+	RCG=[True for a in range(len(roots))]
+	for x in range(len(roots)):
+		rootsCurrDepth[x]=len(roots[x][1])
+	while(ARCSG):
+		for a in range(len(roots)):
+			if(rootsPrevDepth[a]!=rootsCurrDepth[a]):
+				for b in range(rootsPrevDepth[a],rootsCurrDepth[a]):
+					posx=roots[a][1][b][0]
+					posy=roots[a][1][b][1]
+					path=roots[a][2][b]
+					label=roots[a][0]
+					search_opendirrs(posx,posy,path,depth,label)
+
+			rootsPrevDepth[a]=rootsCurrDepth[a]
+			rootsCurrDepth[a]=len(roots[a][1])
+			if(rootsPrevDepth[a]==rootsCurrDepth[a]):
+				RCG[a]=False
+		depth+=1
+		for z in range(len(RCG)):
+			if(RCG[z]==True):
+				break
+			if(z==len(RCG)-1 and RCG[z]==False):
+				ARCSG=False
+	startposlen=0
+	for a in range(len(roots)):
+		startposlen+=len(roots[a][1])
+	print("startposlen: "+str(startposlen))
+	print("rootscurrdepth[3]: "+str(rootsCurrDepth[3]))
+	print("depth: "+str(depth))
+	return roots
 
 	
-def search_opendirrs(posx, posy, path):
+def search_opendirrs(posx, posy, path, depth, label):
 	openings=0
-	skips=0
+	skips=random.randint(0,2)
 	dirr=-1
+	#print("posx: "+str(posx)+" posy: "+str(posy)+" label: "+str(label)+" path: "+str(path))
 	for x in range(len(path)):
 		dirr=path[x]
 		openings=0
@@ -42,10 +68,14 @@ def search_opendirrs(posx, posy, path):
 			openings+=checkgrid(posx,posy,y)
 		if(openings<=2):
 			skips+=1
-		if(skips==4):
+		if(skips==5):
 			for z in range(4):
-				branch_paths.append(growbranch(posx,posy,treesize,z))
-				start_positions.append([posx,posy])
+				if(checkgrid(posx,posy,z)==0):
+					#print(str(posx)+"  "+str(posy)+"  "+str(z))
+					newpath=growbranch(posx,posy,treesize,z)
+					roots[label][1].append([posx,posy])
+					roots[label][2].append(newpath)
+					#print("roots[label]: "+str(roots[label]))
 			return 0
 		if(dirr==0):
 			posy-=1
@@ -66,24 +96,27 @@ def search_opendirrs(posx, posy, path):
 
 #def growrecursive(prevx,prevy,posx,posy,length):
 
-def growbranch( posx, posy, length,initdirr):
+#def findposdirs(): look at each square and see if it is part of path and which dirrs it can go.
+
+def growbranch(posx, posy, length, initdirr):
 	#better chance of continuing direction
 	#North=0, East=1, South=2, West=3
 	branch_path=[]
 	dirr=initdirr
 	for i in range(length):
 		dirr=dont_turn_back(initdirr,dirr)
-		if(i<4):
+		if(i<8):
 			dirr=initdirr
+			#doesn't seem to work
 		n=0
+
 		while(checkgrid(posx,posy,dirr)):
 			if(n>100):
 				return branch_path
 			#gets reassigned then it can turn back
 			dirr=dont_turn_back(initdirr,dirr)
 			n+=1
-		grid_dir[posy][posx].append([dirr,counterdirr(dirr)])
-		#wont account for last block of path
+
 		if(dirr==0):
 			posy-=1
 		if(dirr==1):
@@ -157,20 +190,9 @@ def turncounter(dirr):
 		ret=3
 	return ret
 
-def counterdirr(dirr):
-	if(dirr<2):
-		return dirr+2
-	else:
-		return dirr-2
-
 def getGrid():
 	return grid
 
-def getPath():
-	return path
-
-def getbranchPaths():
-	return branch_paths
-
 if __name__ == "__main__":
 	asdf=0
+	quadTree()
